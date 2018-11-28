@@ -1,0 +1,62 @@
+version: '3.4'
+
+services:
+  cassandra:
+    image: cassandra
+    container_name: cassandra
+    ports:
+      - "9042:9042"
+
+  kafka:
+    image: wurstmeister/kafka
+    container_name: kafka
+    environment:
+      KAFKA_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    links:
+      - zookeeper
+    ports:
+     - "9092:9092"
+
+  mongo:
+    image: mongo
+    container_name: mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+    ports:
+      - "27017:27017"
+
+  zookeeper:
+    image: wurstmeister/zookeeper
+    container_name: zookeeper
+    ports:
+      - 2181:2181
+
+  go-eventpersistence:
+    image: terrextech/go-eventpersistence:v4.0.0
+    env_file:
+      - ./.env.persistence
+
+  go-eventstore-query:
+    image: terrextech/go-eventstore-query:v6.0.0
+    env_file:
+      - ./.env.esquery
+
+  rm-shipment-items:
+    build:
+      context: ../
+      dockerfile: Dockerfile_test
+      args:
+        SOURCE_REPO: rm-shipment-items
+    image: rm-shipment-items
+    env_file:
+      - ../.env
+
+  rm-shipment-items-test:
+    image: rm-shipment-items
+    command: go test -v ./...
+    env_file:
+      - ../.env
+    environment:
+      CGO_ENABLED: 0
